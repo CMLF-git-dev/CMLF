@@ -115,15 +115,8 @@ class Model(nn.Module):
                                  num_layers=self.rnn_layer,
                                  batch_first=True,
                                  dropout=self.dropout)
-        # self.rnn_daily_2 = klass(input_size=self.hid_size,
-        #                          hidden_size=self.hid_size,
-        #                          num_layers=self.rnn_layer,
-        #                          batch_first=True,
-        #                          dropout=self.dropout)
-        # self.fc_out_1 = nn.Linear(in_features=self.input_size, out_features=self.hid_size)    # point contrast weight
         self.fc_out_1 = nn.Linear(in_features=self.hid_size, out_features=self.hid_size)  # point contrast weight
         self.fc_out_2 = nn.Linear(in_features=self.hid_size, out_features=1)                # output fc
-        # self.fc_out_3 = nn.Linear(in_features=self.hid_size, out_features=self.hid_size+self.input_size)    # trend contrast weight
         self.fc_out_3 = nn.Linear(in_features=self.hid_size, out_features=self.hid_size*2)  # trend contrast weight
 
     def forward(self, data_daily, data_highfreq):
@@ -161,16 +154,10 @@ class Model(nn.Module):
             log_l1 = torch.nn.functional.log_softmax(dot_product, dim=1)[:, 0]
             point_contrast_loss += -torch.mean(log_l1)
 
-
-        # pred_1, _ = self.rnn_daily_1(data_daily_1 + day_reps_1)
-        # pred_2, _ = self.rnn_daily_2(data_daily_2 + day_reps_2)
-        # out = self.fc_out_2(torch.cat((pred_1[:, -1, :], pred_2[:, -1, :]), dim=1))
-        # pred_1, _ = self.rnn_daily_1(data_daily_2 + day_reps_2 + data_daily_1 + day_reps_1)
         pred_1, _ = self.rnn_daily_1(torch.cat((data_daily_2 + day_reps_2, data_daily_1 + day_reps_1), dim=2))
         out = self.fc_out_2(pred_1[:, -1, :])
 
         # Trend contrast
-        #new_data_daily = torch.reshape(data_daily_2+day_reps_2+data_daily_1 +day_reps_1, (-1, self.hid_size*self.input_day))
         new_data_daily = torch.reshape(torch.cat((data_daily_2 + day_reps_2, data_daily_1 + day_reps_1), dim=2),
                                        (-1, self.hid_size*2 * self.input_day))
         new_data_daily = self._generate_data(new_data_daily, size=self.hid_size*2)
@@ -183,58 +170,6 @@ class Model(nn.Module):
         trend_contrast_loss = -torch.mean(log_l1)
 
         return 0.05 * point_contrast_loss + trend_contrast_loss, out[..., 0]
-
-    ## Concat code
-    # def forward(self, data_daily, data_highfreq):
-    #     data_highfreq = data_highfreq.view(-1, self.input_day, self.input_size, self.input_highfreq_length)
-    #     arr = []
-    #     for i in range(self.input_day):
-    #         input = data_highfreq[:, i, :, :]  # [batch, input_day, input_size, seq_len] -> [batch, input_size, seq_len]
-    #         input = input.permute(0, 2, 1)  # [batch, input_size, seq_len] -> [batch, seq_len, input_size ]
-    #         # pprint(f'input_shape {input.shape}')
-    #         out, _ = self.rnn_highfreq(self.net_highfreq(input))
-    #         out = out[:, -1, :].unsqueeze(1)  # [batch, seq_len, hid_size] -> [batch, 1, hid_size]
-    #         # out = self.out(out)
-    #         arr.append(out)
-    #     day_reps = torch.cat(arr, dim=1)  # arr: [batch, 1, hid_size] * input_day -> [batch, input_day, input_size]
-    #
-    #     data_daily = data_daily.view(-1, self.input_size, self.input_day)
-    #     data_daily = data_daily.permute(0, 2, 1)    # [batch, input_size, seq_len] -> [batch, seq_len, input_size]
-    #     # data_daily = self.net_daily(data_daily)     # [batch, seq_len, input_size] -> [batch, seq_len, hidden_size]
-    #
-    #     # Point contrast
-    #     context = self.fc_out_1(data_daily)
-    #     point_contrast_loss = 0
-    #     for i in range(self.input_day):
-    #         daily_input = context[:, i, :]          # [batch, seq_len, hidden_size] -> [batch, hidden_size]
-    #         highfreq_input = day_reps[:, i, :]      # [batch, seq_len, hidden_size] -> [batch, hidden_size]
-    #         highfreq_input = self._generate_highfreq_data(highfreq_input)
-    #
-    #         highfreq_input = torch.reshape(highfreq_input, (-1, 1+self.negative_sample, self.hid_size))
-    #         daily_input = torch.unsqueeze(daily_input, 1)   # [batch, 1, hidden_size]
-    #         dot_product = torch.mean(highfreq_input * daily_input, -1)
-    #         log_l1 = torch.nn.functional.log_softmax(dot_product, dim=1)[:, 0]
-    #         point_contrast_loss += -torch.mean(log_l1)
-    #
-    #     # pred, _ = self.rnn_daily(data_daily)
-    #     # pred, _ = self.rnn_daily(torch.cat((data_daily, day_reps), dim=2))
-    #     pred, _ = self.rnn_daily(torch.cat((data_daily, day_reps), dim=2))
-    #     out = self.fc_out_2(pred[:, -1, :])
-    #
-    #     # Trend contrast
-    #     # data_daily: [batch, input_day, input_size], day_reps: [batch, input_day, hid_size]
-    #     new_data_daily = torch.reshape(torch.cat((data_daily, day_reps), dim=2), (-1, (self.hid_size+self.input_size)*self.input_day))
-    #     new_data_daily = self._generate_data(new_data_daily, size=self.hid_size+self.input_size)
-    #     new_data_daily = torch.reshape(new_data_daily, (-1, self.input_day+self.negative_sample, self.hid_size+self.input_size))
-    #     next = new_data_daily[:, -1-self.negative_sample:, :]
-    #     context_trend = self.fc_out_3(pred[:, -2, :])
-    #     context_trend = torch.unsqueeze(context_trend, 1)
-    #     dot_product_trend = torch.mean(next * context_trend, -1)
-    #     log_l1 = torch.nn.functional.log_softmax(dot_product_trend, dim=1)[:, 0]
-    #     trend_contrast_loss = -torch.mean(log_l1)
-    #
-    #     # return 0.05 * point_contrast_loss + 0 * trend_contrast_loss, out[..., 0]
-    #     return 0.05 * point_contrast_loss + trend_contrast_loss, out[..., 0]
 
     @model_ingredient.capture
     def fit(self,
