@@ -1,0 +1,6 @@
+numpy==1.19.2
+pandas==1.1.5
+sacred==0.7.4
+tensorboardX==2.1
+torch==1.7.1+cu101
+tqdm==4.51.0 
