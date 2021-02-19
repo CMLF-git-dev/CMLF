@@ -1,7 +1,7 @@
 {
     "seed": 2,
     "loader_name": "daily_loader_contrast",
-    "output_path" : "/home/v-homin/Digger_Guider/framework/out/contrast",
+    "output_path" : "//CMLF/framework/out/contrast",
     "comt" : "hft",
     "run_on" : false,
     "daily_loader_contrast": {
@@ -18,7 +18,7 @@
         "train_shuffle" : true,
         "batch_size": 300,
         "pre_n_day" : 20,
-        "DATA_PATH": "//home/v-homin/Digger_Guider/data",
+        "DATA_PATH": "//CMLF/data",
         "negative_sample": 5
     },
     "model_name": "contrastive_all_2_stage",
@@ -35,6 +35,6 @@
         "hid_size": 64,
         "optim_args": {"lr":1e-2},
         "negative_sample": 5,
-        "pretrain_path": "//home/v-homin/Digger_Guider/framework/my_runs/169/model.bin"
+        "pretrain_path": "//CMLF/framework/my_runs/169/model.bin"
     }
 }   
