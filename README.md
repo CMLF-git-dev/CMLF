@@ -1,4 +1,4 @@
-## Stock Trend Prediction with Multi-granularity Data: A Contrastive Learning Approach with Adaption Fusion
+## Stock Trend Prediction with Multi-granularity Data: A Contrastive Learning Approach with Adaptive Fusion
 
 0. ### **Dependencies**
 
